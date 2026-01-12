@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Operation On-Time – Mission Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #2f425a, #3b5b7a, #0f172a);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 50px 20px;
+      color: #e5e7eb;
+    }
+
+    .card {
+      background: rgba(2, 6, 23, 0.92);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 720px;
+      width: 100%;
+      box-shadow:
+        0 30px 60px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(255,255,255,0.05);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .logo {
+      width: 64px;
+      height: auto;
+    }
+
+    h1 {
+      font-size: 24px;
+      margin: 0;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      color: #a5b4fc;
+      font-size: 14px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .stat {
+      background: linear-gradient(
+        135deg,
+        rgba(59,91,122,0.35),
+        rgba(15,23,42,0.35)
+      );
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 15px;
+    }
+
+    .progress-bar {
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      overflow: hidden;
+      height: 16px;
+      margin-bottom: 18px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(
+        90deg,
+        #60a5fa,
+        #38bdf8,
+        #22d3ee
+      );
+      transition: width 0.4s ease;
+    }
+
+    .status {
+      text-align: center;
+      font-size: 17px;
+      margin-bottom: 22px;
+      padding: 12px;
+      border-radius: 14px;
+      background: linear-gradient(
+        135deg,
+        rgba(96,165,250,0.15),
+        rgba(15,23,42,0.3)
+      );
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 24px;
+      font-size: 12px;
+    }
+
+    .day {
+      padding: 10px 6px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(15,23,42,0.6);
+    }
+
+    .goal {
+      color: #e5e7eb;
+    }
+
+    .rest {
+      color: #94a3b8;
+      opacity: 0.65;
+    }
+
+    .checked {
+      background: linear-gradient(
+        135deg,
+        #38bdf8,
+        #60a5fa
+      );
+      color: #020617;
+      font-weight: 700;
+      box-shadow: 0 10px 20px rgba(56,189,248,0.35);
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      font-size: 16px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(
+        135deg,
+        #38bdf8,
+        #60a5fa
+      );
+      color: #020617;
+      cursor: pointer;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      box-shadow: 0 12px 25px rgba(56,189,248,0.35);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 30px rgba(56,189,248,0.45);
+    }
+
+    button:disabled {
+      background: #334155;
+      color: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 12px;
+      color: #c7d2fe;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="header">
+      <img src="logo.png" alt="The Corporate Traveler" class="logo" />
+      <div>
+        <h1>🎯 Operation On-Time</h1>
+        <div class="subtitle">Mission Control Dashboard</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">On-time days: <strong id="onTime">0 / 35</strong></div>
+      <div class="stat">Buffer remaining: <strong id="buffer">5</strong></div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress"></div>
+    </div>
+
+    <div class="status" id="status">🟢 On Track</div>
+
+    <div class="calendar" id="calendar"></div>
+
+    <button id="checkInBtn">✅ Mark Today as On Time</button>
+
+    <div class="footer">
+      Goal days: Sunday–Thursday · Friday & Shabbat = Rest
+    </div>
+  </div>
+
+  <script>
+    const START_DATE = new Date("2026-01-12");
+    const TOTAL_REQUIRED = 35;
+    const TOTAL_DAYS = 40;
+
+    let onTimeDays = Number(localStorage.getItem("onTimeDays")) || 0;
+    let checkedDays = JSON.parse(localStorage.getItem("checkedDays") || "[]");
+
+    const onTimeEl = document.getElementById("onTime");
+    const progressEl = document.getElementById("progress");
+    const calendarEl = document.getElementById("calendar");
+    const btn = document.getElementById("checkInBtn");
+
+    function isGoalDay(date) {
+      const d = date.getDay();
+      return d >= 0 && d <= 4;
+    }
+
+    function buildCalendar() {
+      calendarEl.innerHTML = "";
+      for (let i = 0; i < TOTAL_DAYS; i++) {
+        const date = new Date(START_DATE);
+        date.setDate(date.getDate() + i);
+
+        const div = document.createElement("div");
+        div.className = "day " + (isGoalDay(date) ? "goal" : "rest");
+
+        if (checkedDays.includes(date.toDateString())) {
+          div.classList.add("checked");
+        }
+
+        div.innerHTML = `
+          <div>${date.toLocaleDateString("en-US", { weekday: "short" })}</div>
+          <strong>${date.getDate()}</strong>
+        `;
+
+        calendarEl.appendChild(div);
+      }
+    }
+
+    function updateUI() {
+      onTimeEl.textContent = `${onTimeDays} / ${TOTAL_REQUIRED}`;
+      progressEl.style.width = `${(onTimeDays / TOTAL_REQUIRED) * 100}%`;
+      if (onTimeDays >= TOTAL_REQUIRED) btn.disabled = true;
+    }
+
+    btn.addEventListener("click", () => {
+      const today = new Date();
+      if (!isGoalDay(today)) return;
+
+      const key = today.toDateString();
+      if (!checkedDays.includes(key)) {
+        checkedDays.push(key);
+        onTimeDays++;
+        localStorage.setItem("checkedDays", JSON.stringify(checkedDays));
+        localStorage.setItem("onTimeDays", onTimeDays);
+        buildCalendar();
+        updateUI();
+      }
+    });
+
+    buildCalendar();
+    updateUI();
+  </script>
+</body>
+</html>
